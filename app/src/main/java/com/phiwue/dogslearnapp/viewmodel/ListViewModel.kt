@@ -1,15 +1,23 @@
 package com.phiwue.dogslearnapp.viewmodel
 
+import android.app.Application
+import android.widget.Toast
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.phiwue.dogslearnapp.model.DogBreed
+import com.phiwue.dogslearnapp.model.DogDataBase
 import com.phiwue.dogslearnapp.model.DogsApiService
+import com.phiwue.dogslearnapp.util.SharedPreferencesHelper
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.observers.DisposableSingleObserver
 import io.reactivex.schedulers.Schedulers
+import kotlinx.coroutines.launch
 
-class ListViewModel: ViewModel() {
+class ListViewModel(application: Application): BaseViewModel(application) {
+
+    private var prefHelper = SharedPreferencesHelper(getApplication())
+    private var refreshTime = 5 * 60 * 1000 * 1000 * 1000L // 5 mins in nano s
 
     private val dogsService = DogsApiService()
     private val disposable = CompositeDisposable() // used to avoid memory leaks while waiting for observable
@@ -19,15 +27,29 @@ class ListViewModel: ViewModel() {
     val loading = MutableLiveData<Boolean>()
 
     fun refresh(){
-/*        val dog1 = DogBreed("1", "Corgi", "15 years", "breedGroup", "bredFor", "temperament", "url")
-        val dog2 = DogBreed("2", "Labrador", "10 years", "breedGroup", "bredFor", "temperament", "url")
-        val dog3 = DogBreed("3", "Rotwailer", "12 years", "breedGroup", "bredFor", "temperament", "url")
+        // if last fetchFromRemote less than 5 mins ago
+        // --> fetch locally from database else fetch remote from web api
 
-        val dogList = arrayListOf<DogBreed>(dog1, dog2, dog3)
-        dogs.value = dogList
-        dogsLoadError.value = false
-        loading.value = false*/
+        val updateTime = prefHelper.getUpdateTime()
+        if(updateTime != null && updateTime != 0L && System.nanoTime() - updateTime < refreshTime){
+            fetchFromDatabase()
+        }else{
+            fetchFromRemote()
+        }
+    }
+
+    fun refreshBypassCache(){
         fetchFromRemote()
+    }
+
+    private fun fetchFromDatabase(){
+        loading.value = true
+        // launch coroutine from background thread
+        launch {
+            val dogs = DogDataBase(getApplication()).dogDao().getAllDogs()
+            dogsRetrieved(dogs)
+            Toast.makeText(getApplication(), "Dogs retrieved from database", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun fetchFromRemote(){
@@ -40,9 +62,8 @@ class ListViewModel: ViewModel() {
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribeWith(object : DisposableSingleObserver<List<DogBreed>>(){
                     override fun onSuccess(dogList: List<DogBreed>) {
-                        dogs.value = dogList
-                        dogsLoadError.value = false
-                        loading.value = false
+                        storedDogsLocally(dogList)
+                        Toast.makeText(getApplication(), "Dogs retrieved from remote", Toast.LENGTH_SHORT).show()
                     }
 
                     override fun onError(e: Throwable) {
@@ -54,6 +75,28 @@ class ListViewModel: ViewModel() {
                 })
         )
 
+    }
+
+    private fun dogsRetrieved(dogList: List<DogBreed>){
+        dogs.value = dogList
+        dogsLoadError.value = false
+        loading.value = false
+    }
+
+    private fun storedDogsLocally(list: List<DogBreed>){
+        // needs to processed from a background thread
+        launch{
+            val dao = DogDataBase(getApplication()).dogDao()
+            dao.deleteAllDogs()
+            val result = dao.insertAll(*list.toTypedArray())
+            var i = 0
+            while(i < list.size){
+                list[i].uuid = result[i].toInt()
+                ++i
+            }
+            dogsRetrieved(list)
+        }
+        prefHelper.saveUpdateTime(System.nanoTime())
     }
 
     override fun onCleared() {

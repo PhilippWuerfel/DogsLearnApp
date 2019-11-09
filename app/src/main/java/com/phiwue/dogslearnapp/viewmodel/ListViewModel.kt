@@ -44,7 +44,7 @@ class ListViewModel(application: Application): BaseViewModel(application) {
 
     private fun fetchFromDatabase(){
         loading.value = true
-        // launch coroutine from background thread
+        // launch coroutine from background thread to receive dogs from database
         launch {
             val dogs = DogDataBase(getApplication()).dogDao().getAllDogs()
             dogsRetrieved(dogs)

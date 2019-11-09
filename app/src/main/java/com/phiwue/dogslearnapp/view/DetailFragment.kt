@@ -11,6 +11,8 @@ import androidx.lifecycle.ViewModelProviders
 import androidx.navigation.Navigation
 
 import com.phiwue.dogslearnapp.R
+import com.phiwue.dogslearnapp.util.getProgressDrawable
+import com.phiwue.dogslearnapp.util.loadImage
 import com.phiwue.dogslearnapp.viewmodel.DetailViewModel
 import kotlinx.android.synthetic.main.fragment_detail.*
 
@@ -19,7 +21,7 @@ import kotlinx.android.synthetic.main.fragment_detail.*
  */
 class DetailFragment : Fragment() {
 
-    //    private var dogUuid = 0
+    private var dogUuid = 0
     private lateinit var viewModel: DetailViewModel
 
     override fun onCreateView(
@@ -33,11 +35,13 @@ class DetailFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-//        arguments?.let {
-//            dogUuid = DetailFragmentArgs.fromBundle(it).dogUuid
-//        }
+//         ?.let = only run if argument is not null
+        arguments?.let {
+            dogUuid = DetailFragmentArgs.fromBundle(it).dogUuid
+        }
         viewModel = ViewModelProviders.of(this).get(DetailViewModel::class.java)
-        viewModel.fetch()
+//        viewModel.fetch()
+        viewModel.fetchFromDatabase(dogUuid)
 
         observeViewModel()
     }
@@ -49,6 +53,9 @@ class DetailFragment : Fragment() {
                 dogLifespan.text = dog.lifeSpan
                 dogPurpose.text = dog.bredFor
                 dogTemperament.text = dog.temperament
+                context?.let{
+                    dogImage.loadImage(dog.imageUrl, getProgressDrawable(it))
+                }
             }
 
         })

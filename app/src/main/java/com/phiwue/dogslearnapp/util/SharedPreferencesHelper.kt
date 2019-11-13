@@ -36,7 +36,7 @@ class SharedPreferencesHelper {
 
     fun getUpdateTime() = prefs?.getLong(PREF_TIME, 0)
 
-
-
+    // used in the settings menu
+    fun getCacheDuration() = prefs?.getString("pref_cache_duration", "")
 
 }

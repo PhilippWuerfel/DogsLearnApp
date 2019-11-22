@@ -33,10 +33,16 @@ data class DogBreed(
     @ColumnInfo(name = "dog_url")
     @SerializedName(value = "url")
     val imageUrl: String?
-){
+) {
     // variable for the data base primary key
     @PrimaryKey(autoGenerate = true)
     var uuid: Int = 0 // 0 only as default value
 }
 
 data class DogPalette(var color: Int)
+
+data class SmsInfo(
+    var to: String,
+    var text: String,
+    var imageUrl: String?
+)

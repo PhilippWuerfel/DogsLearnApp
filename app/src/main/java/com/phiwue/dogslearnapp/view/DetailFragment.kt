@@ -124,7 +124,14 @@ class DetailFragment : Fragment() {
                 (activity as MainActivity).checkSmsPermission()
             }
             R.id.action_share -> {
-                // tbd
+
+                // Generic Share
+                val intent = Intent(Intent.ACTION_SEND)
+                intent.type = "test/plain"
+                intent.putExtra(Intent.EXTRA_SUBJECT, "Check out this dog breed")
+                intent.putExtra(Intent.EXTRA_TEXT, "${currentDog?.dogBreed} bred for ${currentDog?.bredFor}")
+                intent.putExtra(Intent.EXTRA_STREAM, currentDog?.imageUrl)
+                startActivity(Intent.createChooser(intent, "Share with")) // All application that can handle ACTION_SEND can use/pass this information
             }
         }
         return super.onOptionsItemSelected(item)
